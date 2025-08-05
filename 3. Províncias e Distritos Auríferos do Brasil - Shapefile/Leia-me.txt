@@ -1,0 +1,35 @@
+INFORMAÇÕES DO PRODUTO 
+
+Projeto: Províncias e distritos auríferos do Brasil
+
+Arquivos vetoriais (shp) da Províncias e distritos auríferos do Brasil
+Escala 1:5.000.000,
+Sistema de Coordenadas Geográficas, Datum SIRGAS - 2000. (EPSG - 4674)
+Data da Publicação: 30/11/2022
+
+
+1 - Informações sobre a Litologia
+
+
+Base Geológica: A base geológica é do Mapa Geológico do Brasil, escala 1:1.000.000 (Projeto Gis do Brasil, 2004), a qual foi gerada a partir da integração das folhas geológicas ao milionésimo e coleta de dados em campo, integrada às informações consistidas da literatura, interpretação de produtos de sensoriamento remoto (imagens satelitais e/ou fotografias aéreas), inclusive imagens aerogeofísicas, e demais dados disponíveis e/ou adquiridos no projeto, tais como geocronologia, petrografia e geoquímica.
+
+a) Os arquivos de estilo *Sld (OGC® Styled Layer Descriptor), *QML (QGIS - Open Source Geographic Information System - Versão do QGIS - 3.16.9-Hannover) e *lyr/lyrx (ESRI© - LayerFile - ArcGis - Versão 10.1 e ArcGIS Pro 2.8), da camada de Litoestratigrafia, estão localizados na pasta Litologia.
+
+OBS: As cores das unidades litológicas podem apresentar divergências em áreas limites quando associadas a outras folhas vizinhas de períodos, projetos e/ou temas diferentes, pois elas representam as cores extraídas dos seus respectivos mapas.
+
+O Serviço Geológico do Brasil - CPRM, dispõem de uma biblioteca com simbologias integradas das unidades litológicas do Brasil, onde as cores são definidas a partir da ordem de chegada dos mapas, assumindo a cor do mapa mais antigo.
+
+Para fazer o download das bibliotecas clique em: https://geosgb.cprm.gov.br/geosgb/simbologia.html
+
+
+2 - Informações sobre as Províncias e Distritos
+
+a) A delimitação das províncias e distritos auríferos foi baseada no conhecimento geológico adquirido pelo Serviço Geológico do Brasil - CPRM utilizando-se dados históricos (Programa Nacional de Prospecção de Ouro, Projeto Ouro-Gemas, dentre outros), dados de mapeamento geológico e de projetos atuais de avaliação dos recursos minerais, além do Banco de Dados Institucional (GeoSGB), onde as ocorrências auríferas foram consistidas e atualizadas. A base geológica utilizada é o Mapa Geológico do Brasil, escala 1:1.000.000 (Projeto Gis do Brasil, 2004). As áreas delimitadas envolvem tanto as mineralizações primárias como secundárias de ouro. 
+
+
+3 - Base Cartográfica
+
+Base Planimétrica digital obtida das cartas na escala 1:250.000 pela DICART ajustadas às imagens RapidEye. Esta base foi editada e atualizada pela Divisão de Cartografia - DICART e pela Superintendência Regional de Goiânia, através da Gerência de Infraestrutura Geocientífica - GERINF, para atender ao mapeamento temático do Serviço Geológico do Brasil - CPRM.
+
+
+Para mais informações: https://rigeo.cprm.gov.br/handle/doc/22631

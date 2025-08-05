@@ -1,0 +1,154 @@
+# Introdução
+
+Documentação para o *paper* sobre a relação entre homicídios, terras indígenas e reservas de ouro. Especificamente, busca-se avaliar se houve aumento na taxa de homicídios (total e indígena) em municípios que contém terras indígenas e reserva de ouro *após* a eleição presidencial de 2018, potencial efeito da nomeação de Ricardo Salles como Ministro do Meio Ambiente.
+
+A ideia destas anotações é explorar a base de dados disponível, explicando cada variável e registrando suas limitações. Há, também, registro das respostas dadas para perguntas feitas a determinados órgãos públicos através da Lei de Acesso a Informação (lei nº 12.527/2011). Por fim, e não menos importante, estão documentadas as regressões feitas.
+
+# Dados
+
+## Terras Indígenas
+
+As informações sobre terras indígenas podem ser encontradas no [GeoServer](https://geoserver.funai.gov.br/geoserver/web/wicket/bookmarkable/org.geoserver.web.demo.MapPreviewPage?2&filter=false) da FUNAI. Das bases de dados disponibilizadas, optou-se pelo uso de "Terras indígenas (poligonais) com Portarias e Data de Publicação". Apesar do [site](https://www.gov.br/funai/pt-br/atuacao/terras-indigenas/demarcacao-de-terras-indigenas) da FUNAI dizer que há 782 TIs em seus registros, a base escolhida possui 632 observações e 31 variáveis. Na tabela abaixo, o nome das variáveis e uma descrição própria do que aparentemente representam (o dicionário oficial não foi encontrado).
+
+| Variável                                             | Descrição                                                                              |
+|------------------------------------------------------|----------------------------------------------------------------------------------------|
+| `gid`                                                | (?)                                                                                    |
+| `terrai_cod`                                         | Código da TI                                                                           |
+| `terrai_nom`                                         | Nome da TI                                                                             |
+| `etinia_nome`                                        | Etnia(s) que habita(m) a TI                                                            |
+| `municipio_`                                         | Município(s) em que a TI se localiza                                                   |
+| `uf_sigla`                                           | Unidade(s) Federativa(s) em que a TI se localiza                                       |
+| `superficie`                                         | Área da TI (unidade?)                                                                  |
+| `modalidade`                                         | Modalidade da TI                                                                       |
+| `fase_ti`                                            | Fase do processo demarcatório em que a TI está, a depender de sua modalidade           |
+| `reestudo_t`                                         | (?)                                                                                    |
+| `cr`                                                 | Coordenação Regional a qual pertence a TI                                              |
+| `faixa_fron`                                         | "A TI está em faixa de fronteira?"                                                     |
+| `tit_{ em_est | delimi | declar | homolo | regula }` | Ato normativo de cada fase demarcatória percorrida pela TI até o momento               |
+| `res_{ em_est | delimi | declar | homolo | regula }` | Resumo de cada ato normativo (?)                                                       |
+| `data_{ em_es | delim | decla | homol | regul }`     | Data da respectiva fase demarcatória                                                   |
+| `undadm_nom`                                         | Coordenação Regional a qual pertence a TI (possui os mesmos valores que a coluna `cr`) |
+| `undadm_sig`                                         | Sigla da Coordenação Regional                                                          |
+| `undadm_cod`                                         | Código da Coordenação Regional                                                         |
+| `geometry`                                           | Polígono com os limites de cada TI no mapa                                             |
+
+: Dicionário de Dados - Terras Indígenas
+
+<br>
+
+Ainda que a base contenha uma variável com o nome dos municípios que cada terra indígena tenha sobreposição territorial, não há associação *direta* com a respectiva unidade federativa *–* ocorre apenas a associação *indireta*, através da variável `UF`. Se tentássemos juntar as duas informações para identificar completamente os municípios que se sobrepõem em cada TI, haveria o risco de atribuir homônimos. Portanto, optou-se por identificar os municípios associados a cada TI através da sobreposição dos limites territorais de ambos, utilizando para tal as funções `st_intersection` e `st_area` do pacote `sf` (inicialmente, a função `st_intersection` traça os limites de sobreposição para cada município e, na sequência, há o cálculo da área do município coberta por TI através da função `st_area`; naturalmente, municípios cuja proporção da área com TI for maior que zero possuem TI).
+
+Para o *paper*, é importante compreender se há diferenciação das fases demarcatórias quanto à legalidade do garimpo. Em outras palavras, existe alguma fase do processo demarcatório em que, só a partir dela, o garimpo passe a ser ilegal? Para responder essa pergunta e, também, o questionamento sobre o número de TIs no site da FUNAI *versus* número de observações da base de dados, um 'Pedido de Acesso à Informação' foi aberto na plataforma Fala.BR, do governo federal. Não houve resposta quanto a diferença no número de TIs ditas no site e na base. Em relação ao garimpo ilegal,
+
+> *(...) uma vez que a legislação não permite a lavra mineral no interior de terras indígenas, sem especificar estágios de seu procedimento administrativo de demarcação, as ações desta natureza detectadas no interior das terras indígenas são consideradas ilegais para fins de ações desta Coordenação-Geral de Monitoramento Territorial independente do estágio do procedimento demarcatório da TI*.
+
+::: {.callout-note collapse="true"}
+## Pergunta Completa
+
+Prezados,
+
+Meu nome é Victor Líbera e, nesse momento, estou tentando coletar dados sobre as atuais Terras Indígenas (TIs) no país para um projeto de pesquisa específico. Durante a coleta, surgiram algumas dúvidas. Ficaria muito grato caso vocês pudessem me ajudar! Segue:
+
+1.  No site da FUNAI, consta o seguinte trecho: "Atualmente, constam 782 terras indígenas nos registros da Funai nas fases especificadas". No entanto, a base de dados que é disponibilizada possui 632 observações. Como se dá essa relação?
+
+2.  Sei que as TIs podem ser classificadas nas seguintes modalidades: "Tradicionalmente Ocupadas", "Reservas Indígenas", "Dominiais" e "Interditadas". Ao mesmo tempo, cada modalidade possui determinado número de fases no processo de demarcação. Essas fases são sequenciais? (por exemplo, no caso de terras tradicionalmente ocupadas, é preciso que haja delimitação para que se tenha a declaração/homologação/regularização?) Se o processo for sequencial: em cada modalidade, a partir de qual fase o garimpo se torna ilegal naquela área? Caso não seja sequencial: em quais fases o garimpo é considerado ilegal? Fiquei com a impressão que, a depender da fase de demarcação, o território ainda não é considerado TI propriamente dita.
+
+Além disso, gostaria de indicar uma possível inconsistência nos dados disponibilizados pela FUNAI: a terra indígena Rio Branco possui está associada aos municípios Alta Floresta D'Oeste/RO e São Francisco do Guaporé/RO; ao cruzar os dados georreferenciados de TIs e municípios, vê-se que falta considerar também o município São Miguel do Guaporé/RO. Esse fenômeno pode estar se repetindo para outras TIs?
+
+Por fim, observo também que no arquivo com as portarias, algumas TIs não possuem dados referentes as datas. Por exemplo, a reserva indígena Barragem Norte foi reservada em 24/10/2023, mas esse dado não consta no arquivo. O fenômeno ocorre para outras TIs. Gostaria de solicitar esses dados, se possível.
+
+Desde já, agradeço imensamente as respostas!
+
+Atenciosamente,
+
+Victor Líbera
+:::
+
+::: {.callout-important collapse="true"}
+## Resposta Completa (grifos próprios)
+
+Prezado,
+
+Em resposta a sua demanda de início, à Coordenação-Geral de Monitoramento Territorial, destaca que *as informações aqui prestadas limitam-se àquelas vinculadas às competências regimentalmente instituídas à Coordenação-Geral*, ou seja, circunscrevem-se à atuação no âmbito das medidas para o monitoramento e proteção territorial das terras indígenas. Nesta direção, identifica-se na manifestação do cidadão o seguinte trecho vinculado às atribuições da unidade: "em quais fases o garimpo é considerado ilegal? Fiquei com a impressão que, a depender da fase de demarcação, o território ainda não é considerado TI propriamente dita". Acerca do tema, informa-se o que segue:
+
+**A exploração de garimpo em terras indígenas é proibida no Brasil**, conforme previsto no artigo 231 da Constituição Federal, em especial §3º e §7º. Além disso, a legislação estabelece que a mineração em terras indígenas não pode ser concedida sem uma regulamentação específica por meio de lei complementar, sob pena de infração administrativa e crime. Registra-se que tal lei complementar não foi promulgada até a presente data, e ressalta-se ainda o teor da Lei nº 7.805/1989\[1\] , que exclui expressamente as terras indígenas das áreas passíveis de lavra mineral. **Portanto, qualquer atividade de garimpo ou concessão de Permissão de Lavra Garimpeira (PLG) em terras indígenas brasileiras pode ser considerada ilegal. Verifica-se que a legislação declara apenas "terras indígenas", não especificando procedimentos diferenciados conforme estágio de seu procedimento demarcatório**. Nesta direção, destaca-se ainda que decisão do ministro Luis Roberto Barroso no âmbito da Arguição de Descumprimento de Preceito Fundamental (ADPF) 709 no Supremo Tribunal Federal (STF) reforçou a obrigatoriedade de implementação de atividades de proteção territorial nas Terras Indígenas pela Funai, independente do estágio do procedimento administrativo de demarcação\[2\]. Tal decisão foi posteriormente referendada pelo pleno do STF. Adicionalmente, manifestação prévia da Diretoria de Proteção Territorial\[3\] acerca das ações de proteção em terras indígenas, informa ainda:
+
+3.  De inicio, cabe ressaltar que o direito dos Povos Indígenas sobre as terras que tradicionalmente ocupam, nos termos do art. 231 da CF/88, é um direito originário e independe de sua demarcação administrativa, conforme previsão do art. 25 do Estatuto do Índio: **Art. 25. O reconhecimento do direito dos índios e grupos tribais à posse permanente das terras por eles habitadas, nos termos do artigo 198, da Constituição Federal, independerá de sua demarcação**, e será assegurado pelo órgão federal de assistência aos silvícolas, atendendo à situação atual e ao consenso histórico sobre a antiguidade da ocupação, sem prejuízo das medidas cabíveis que, na omissão ou erro do referido órgão, tomar qualquer dos Poderes da República.
+
+(...)
+
+14. Por estas razões que as terras indígenas reivindicadas ou em processo de regularização são as que mais reclamam e necessitam de ações de proteção e fiscalização, sendo imprescindível nestes casos que as ações da Coordenação-Geral de Monitoramento Territorial estejam concatenadas e articuladas com as demais Coordenações-Gerais, especialmente, a Coordenação-Geral de Identificação e Delimitação, de forma a garantir a integridade dos recursos naturais e das riquezas das terras indígenas, na plenitude da garantia constitucional. Outro não foi o sentido da criação desta Diretoria de Proteção Territorial, em substituição a extinta Diretoria de Assuntos Fundiários, levada a termo pelo Decreto Presidencial nº 7056, de 28 de dezembro de 2009, que veio a redefinir as ações de regularização fundiária, tendo como uma das finalidades justamente realçar e focar a etapa de identificação das terras indígenas como uma das mais importantes etapas da política de proteção das terras indígenas, in verbis: "Art. 21. À Diretoria de Proteção Territorial compete: I - formular, planejar, coordenar, implementar e acompanhar a execução das políticas de proteção territorial; II - realizar estudos de identificação e delimitação de terras indígenas; III - realizar a demarcação e regularização fundiária das terras indígenas; IV - realizar o monitoramento nas terras indígenas regularizadas e naquelas ocupadas por populações indígenas, incluindo as isoladas e de recente contato; (...) IX - implantar medidas de vigilância, fiscalização e de prevenção de conflitos em terras indígenas e retirada dos invasores em conjunto com os órgãos competentes."
+
+15. Da análise do supracitado dispositivo, verifica-se, inclusive, a obrigação específica, disposta no inciso IV, da Diretoria de Proteção Territorial em realizar o monitoramento nas terras indígenas ocupadas por população indígena, cujo sentido do Decreto foi exatamente ressaltar que esta obrigação independe da regularização fundiária da terra indígena. Isto, pois, nestes casos, a população indígena continua existindo e ocupando determinada área, a despeito da situação fundiária dessa terra indígena, o que requer políticas públicas voltadas à proteção (física e psíquica) da pessoa indígena e da comunidade indígena, como corolário da garantia constitucional da dignidade da pessoa humana. (...)
+
+16. **Ressalta-se que a obrigação de atuação dos órgãos federais em terras ocupadas por indígenas, independentemente de sua situação fundiária, não pode-se ser restringida unicamente à Funai**, competindo também a todos os demais órgãos que detém atribuições legais na implementação de políticas públicas voltando aos povos indígenas (MEC, FUNASA, MMA, MDA, MDS, etc..). Sobretudo, como o foco da presente informação refere-se à política de proteção de terras indígenas, há que se registrar que a Policia Federal detém um uma enorme responsabilidade na execução da política de proteção da terra indígena, de modo a conferir eficácia as ações da Funai (garantindo a apreensão dos bens e maquinários utilizados em práticas ilícitas, prisão dos infratores coibição dos ilícitos, etc..), **não podendo também a PF se eximir de suas atribuições legais sob a alegação de somente poder atuar em terras indígenas regularizadas**, sob pena de infringir o disposto no capitulo V (Da Defesa das Terras Indígenas) da Lei 6.001/73 - Estatuto do índio, especificamente o art. 34: "Art. 34 O órgão federal de assistência ao índio poderá solicitar a colaboração das Forças Armadas e Auxiliares da Polícia Federal, para assegurar a proteção das terras ocupadas pelos índios e pelas comunidades indígenas."
+
+17. Diante de todo exposto, há que se concluir que não somente existe respaldo jurídico e administrativo para atuação desta Diretoria de Proteção Territorial nas terras indígenas não regularizadas, por meio da Coordenação-Geral de Monitoramento Territorial, mas, sobretudo, constitui-se um dever legal imposto a esta Fundação Nacional do Índio (sic), e cuja a realização de tais ações devem ser priorizadas no âmbito da política de proteção das terras indígenas, de forma a garantir a integridade física e cultural das populações indígenas e dos recursos naturais existentes nas terras indígenas.
+
+[**Em conformidade com os entendimentos firmados acima, uma vez que a legislação não permite a lavra mineral no interior de terras indígenas, sem especificar estágios de seu procedimento administrativo de demarcação, as ações desta natureza detectadas no interior das terras indígenas são consideradas ilegais para fins de ações desta Coordenação-Geral de Monitoramento Territorial independente do estágio do procedimento demarcatório da TI.**]{.underline}
+
+Por fim, conforme Lei nº 12.527/11, art. 15, no caso de negativa de acesso à informação ou de não fornecimento das razões da negativa do acesso, o requerente poderá apresentar recurso no prazo de dez dias a contado da ciência da decisão. E o órgão deverá apreciar o Recurso no prazo de cinco dias.
+
+Cabe ressaltar que a ferramenta do recurso não deve ser utilizada para especificar/reformular pedidos, pois nestas situações é necessário preencher novo formulário de solicitação.
+
+Sem mais para o momento, colocamo-nos à disposição para eventuais esclarecimentos.
+
+Atenciosamente,
+
+SIC/Couvid/Ouvi sic\@funai.gov.br (61) 3247-6306
+
+Anexos: Anexo I - Decisão ADPF 709; Anexo II - Informação técnica n°14/DPT - 2010
+
+\[1\] "Art. 23. A permissão de lavra garimpeira de que trata esta Lei: a) não se aplica a terras indígenas;" \[2\] Anexo I - Decisão ADPF 709 (SEI nº 6756519) \[3\] Anexo II- Informação Técnica nº 14/DPT - 2010, apresenta subsídios jurídicos e administrativos para promoção de ações de proteção em terras indígenas não regularizadas.
+:::
+
+## 'Reservas' de Ouro
+
+Os dados georreferenciados de reservas de ouro são, na realidade, de províncias e distritos auríferos, coletados no site do Serviço Geológico Brasileiro (SGB). Pela definição técnica de 'províncias' e 'distritos' não foi possível identificar a diferença entre ambos e se os dados seriam suficientes/aceitáveis para rodar o estudo. Em outras palavras, qual seria a diferença prática entre 'província' e 'distrito'? Ter a localização das províncias e distritos é o mesmo que ter a localização das ativas e potenciais reservas de ouro do país? Em busca de resposta para tais perguntas, foi enviado um e-mail para a Divisão de Geologia Econômica do SGB. Além disso, houve questionamento sobre o conceito de 'ocorrência de ouro', que aparece no GeoSGB, mapa geológico interativo disponibilizado pelo órgão em sua página da internet. Em relação a serventia de províncias/distritos como 'reservas de ouro',
+
+> (...) Apesar de as províncias e distritos auríferos do Brasil demarcarem regiões adjacentes com histórico de produção ou potencial para ouro, as ativas e potenciais reservas de ouro não estão todas contidas ali, partindo do pressuposto de que nem tudo ainda é conhecido e nem tudo é passível de ser agrupado.
+
+::: {.callout-note collapse="true"}
+## Pergunta Completa
+
+Guilherme, tudo bem?
+
+Meu nome é Victor Líbera e, nesse momento, estou tentando coletar dados do SGB referentes à localização de reservas de ouro no Brasil, para um projeto de pesquisa específico. Em outras palavras, procuro por todas as localidades que já tenham identificado ou possam ter ouro no território nacional.
+
+Na minha busca, encontrei o Informe de Recursos Minerais - Províncias e Distritos Auríferos, de 2022. Lá, me deparei com os conceitos de províncias e distritos auríferos, além dos arquivos .shp com os polígonos e mapas correspondentes. No entanto, como não tenho formação na área (sou formado, na verdade, em Ciências Econômicas), fiquei com algumas dúvidas. Ficaria muito grato se você pudesse me ajudar!
+
+Em primeiro lugar, não sei se essa é a informação que realmente procuro. Em outras palavras: ter a localização das províncias e distritos é o mesmo que ter a localização das ativas e potenciais reservas de ouro do país?
+
+Se sim, qual a diferença entre 'províncias' e 'distritos' auríferos (pela maioria do mapa, tenho a impressão de quê província é um conceito mais amplo que distrito, dado que estes últimos, geralmente, mas não necessariamente, estão contidos nos primeiros)? Sei que as definições estão no Informe mas, infelizmente, não compreendi devido à falta de conhecimento no assunto. A importância de entender a diferença nesses conceitos é para escolher qual será utilizado na pesquisa (consideraria as potenciais e efetivas reservas de ouro como a área das províncias, distritos ou na união dos dois?).
+
+Além disso, notei que o mapa possui pontos chamados de 'ocorrência de ouro', que não necessariamente estão dentro das províncias/distritos. São minas de ouro já exploradas? Como se dá essa relação? Saberia me dizer se tem guardam associação com minas de ouro mapeadas pelo MapBiomas? São os mesmos pontos amarelos que aparecem no GeoSGB quando se clica na 'Ocorrência de Recursos Naturais'? Infelizmente, não encontrei algum arquivo .shp com essas coordenadas: saberia me dizer se estão disponíveis e onde encontrá-las?
+
+Desde já, agradeço imensamente qualquer tipo de contribuição que vocês possam me dar!
+
+Atenciosamente,
+
+Victor Líbera
+:::
+
+::: {.callout-important collapse="true"}
+## Resposta Completa (grifos próprios)
+
+Olá, Vitor. Tudo bem?
+
+1.  "Em primeiro lugar, não sei se essa é a informação que realmente procuro. Em outras palavras: ter a localização das províncias e distritos é o mesmo que ter a localização das ativas e potenciais reservas de ouro do país?"
+
+\- Não. Apesar de as províncias e distritos auríferos do Brasil demarcarem regiões adjacentes com histórico de produção ou potencial para ouro, **as ativas e potenciais reservas de ouro não estão todas contidas ali, partindo do pressuposto de que nem tudo ainda é conhecido e nem tudo é passível de ser agrupado**.
+
+2.  "Além disso, notei que o mapa possui pontos chamados de 'ocorrência de ouro', que não necessariamente estão dentro das províncias/distritos. São minas de ouro já exploradas? Como se dá essa relação? Saberia me dizer se tem guardam associação com minas de ouro mapeadas pelo MapBiomas? São os mesmos pontos amarelos que aparecem no GeoSGB quando se clica na 'Ocorrência de Recursos Naturais'? Infelizmente, não encontrei algum arquivo .shp com essas coordenadas: saberia me dizer se estão disponíveis e onde encontrá-las?"
+
+\- **Ocorrências são manifestações da substância de interesse, com algum conhecimento sobre a sua gênese e associação mineral, formato e texturas, porém ainda não se sabe se a extração é viável economicamente**. Ou seja, são manifestações iniciais de recursos minerais sem os estudos devidos para extração. Como a extração necessita da construção/instalação de um empreendimento mineiro, além do emprego de força de trabalho, criação de um CNPJ, entre outras atividades, deve-se calcular se o retorno financeiro do bem encontrado ali será maior do que o utilizado para a infraestrutura. Assim, além de "descobrir" uma substância mineral, deve-se compreender se ela poderá trazer um empreendimento mineiro lucrativo.
+
+Boa sorte no seu trabalho!
+
+------------------------------------------------------------------------
+
+Guilherme Ferreira da Silva Pesquisador em Geociências - Geólogo, D.Sc. Divisão de Geologia Econômica - DIGECO\
+Serviço Geológico do Brasil - CPRM/SGB. SEDE. Cel. (61) 9-9964-8863
+:::
+
+## Homicídios (número bruto e taxa)
