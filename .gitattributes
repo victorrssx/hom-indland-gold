@@ -1,3 +1,4 @@
+*.extensao filter=lfs diff=lfs merge=lfs -text
 *.pdf filter=lfs diff=lfs merge=lfs -text
 *.shp filter=lfs diff=lfs merge=lfs -text
 *.cst filter=lfs diff=lfs merge=lfs -text
