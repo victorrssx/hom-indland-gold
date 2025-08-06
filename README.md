@@ -6,7 +6,7 @@ A ideia é investigar a relação causal da eleição de 2018 nas taxas de homic
 
 ## Contexto e Motivação
 
-A literatura sobre conflitos por recursos naturais e direitos territoriais sugere que a sobreposição entre terras indígenas e áreas com potencial mineral pode gerar tensões e aumentar a violência local. Este estudo busca testar empiricamente essa hipótese, controlando por características municipais observáveis e não observáveis.
+A literatura sobre conflitos por recursos naturais e direitos territoriais sugere que a sobreposição entre terras indígenas e áreas com potencial mineral pode gerar tensões e aumentar a violência local. Supõe-se que a eleição de Jair Bolsonaro para Presidente da República tenha agravado as disputas, elevando a taxa de homicídios em relação ao municípios semelhantes que não possuem tal característica de conflito. Este estudo busca testar empiricamente esta hipótese, controlando por características municipais observáveis e não observáveis.
 
 ## Metodologia
 
