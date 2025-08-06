@@ -21,20 +21,26 @@ A literatura sobre conflitos por recursos naturais e direitos territoriais suger
 
 ### Fontes de Dados
 
-1. **Homicídios**: 
+Com a marcação ✔️, dados que foram efetivamente utilizados em algum momento.
+
+1. **Municípios**:
+   - {geobr} apud IBGE ✔️
+   - IBGE (municípios limítrofes) ✔️
+
+2. **Homicídios**: 
    - DataSUS (Sistema de Informações sobre Mortalidade) ✔️
    - Atlas da Violência (IPEA)
 
-2. **Dados Populacionais**: 
+3. **Dados Populacionais**: 
    - Instituto Brasileiro de Geografia e Estatística (IBGE) - Estimativas Populacionais enviadas ao TCU para cômputo do FPM ✔️
 
-3. **Terras Indígenas**: 
+4. **Terras Indígenas**: 
    - Fundação Nacional dos Povos Indígenas (FUNAI) - Arquivos shapefile com delimitação territorial ✔️
 
-4. **Reservas Auríferas**: 
+5. **Reservas Auríferas**: 
    - Serviço Geológico do Brasil (SGB/CPRM) - Províncias e Distritos Auríferos do Brasil (escala 1:5.000.000) ✔️
 
-5. **Dados de Mineração**: 
+6. **Dados de Mineração**: 
    - MapBiomas (cobertura e uso da terra)
 
 ## Arquivos Técnicos
