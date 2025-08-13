@@ -14,14 +14,13 @@
     
     if (!require("pacman")) install.packages("pacman") else library(pacman)
     pacman::p_load(tidyverse, magrittr,
-                   readxl, openxlsx, sf, geobr, janitor, broom, biscale, ggtext, cowplot,
-                   EnvStats, broom, estimatr, lmtest, plm, fixest, fastDummies, car)
+                   readxl, openxlsx, sf, geobr, janitor, broom, biscale, ggtext, cowplot, patchwork,
+                   EnvStats, broom, estimatr, lmtest, plm, fixest, fastDummies, car, rlang)
   }
   
-  # ---- Código para os Gráficos ----
+  # ---- Funções para os Gráficos ----
   
   ## Gráfico de Tendências
-  
   plot_trend <- function(data) {
     data %>%  
     group_by(ano, treatment_unit) %>% 
@@ -49,7 +48,6 @@
   }
 
   ## Razão de Homicídios (Treatment/Control) ao longo do Tempo
-  
   plot_ratio <- function(data, x_column, y_column) {
     data %>% 
     group_by(ano, treatment_unit) %>% 
@@ -84,7 +82,6 @@
   }
 
   ## Event Study
-
   plot_event_study <- function(data, x_column, y_column) {
     ggplot(data, aes(x = as.numeric({{x_column}}), y = {{y_column}})) +
     geom_point() +
@@ -98,7 +95,86 @@
     theme_minimal()
   }
 
+  ## Plot Grid
+  make_plot_grid <- function(plot_type, ncol = 4) {
+  dict %>%
+    dplyr::pull(suffix) %>%
+    as.character() %>%
+    purrr::keep(~ .x %in% names(workbook[[plot_type]])) %>%
+    purrr::map(~ workbook[[plot_type]][[.x]] +
+                 ggtitle(.x) +
+                 theme(
+                   plot.title = element_text(hjust = 0.5, face = "bold"),
+                   plot.margin = margin(6, 6, 6, 6)
+                 )) %>%
+    patchwork::wrap_plots(ncol = ncol) &
+    theme(legend.position = "bottom")
+  }
 
+
+  # ---- Função para os Modelos ----
+
+  deploy_models <- function(idx, suffix, filter_expr, treatment_condition_expr, years, model_expr) {
+
+    # Dataset adjust to modelling
+    temp_dataset <- dataset %>%
+      { if (is.na(filter_expr)) . else eval_tidy(parse_expr(filter_expr), data = .) } %>% # Additional filter
+      # Step 1: Create a treatment indicator that is 1 for treated units in all periods
+      mutate(treatment_unit = ifelse(any(!!parse_expr(treatment_condition_expr)), 1, 0), .by = code_muni) %>%
+      # Step 2: Create time period dummies interacted with the Rebate_dummy
+      mutate(!!!setNames(
+        map(years, ~expr(ifelse(ano == !!.x, treatment_unit, 0))),
+        paste0("treatment_unit_", years)
+      ))
+      # Adicionar resultado à lista usando índice
+      {
+        workbook$dataset[[idx]] <<- temp_dataset
+        names(workbook$dataset)[idx] <<- suffix
+      }
+      {
+        workbook$plot_trend[[idx]] <<- plot_trend(temp_dataset)
+        names(workbook$plot_trend)[idx] <<- suffix
+      }
+      {
+        workbook$plot_ratio[[idx]] <<- plot_ratio(temp_dataset, ano, razao_tx_hom_tot)
+        names(workbook$plot_ratio)[idx] <<- suffix      
+      }
+    
+    # Step 3: Creating Event Study & Obtain cluster-robust standard errors
+    event_study_robust_se <- plm(
+      as.formula(paste("tx_hom_tot ~", paste(paste0("treatment_unit_", years), collapse = " + "))),
+      data = pdata.frame(temp_dataset, index = c("name_muni", "ano")), 
+      model = "within", effect = "twoway"
+      ) %>% 
+      coeftest(., vcov = vcovHC(., type = "HC1", cluster = "group")) %>% 
+      # Step 5: Extract coefficients for plotting
+      tidy() %>%
+      filter(grepl("treatment_unit_", term))
+      {
+        workbook$event_study_rse[[idx]] <<- event_study_robust_se
+        names(workbook$event_study_rse)[idx] <<- suffix
+      }
+      {
+        workbook$plot_event_study[[idx]] <<- plot_event_study(event_study_robust_se, 
+                                                      as.numeric(gsub("treatment_unit_", "", term)) - 2018, estimate)
+        names(workbook$plot_event_study)[idx] <<- suffix
+      }
+    
+    # Step 6: Model (plm package)
+    model_plm <- plm(
+      as.formula(model_expr),
+      data = pdata.frame(temp_dataset, index = c("name_muni", "ano")), 
+      model = "within", effect = "twoways"
+    ) %>%
+    coeftest(., vcov = vcovHC(., type = "HC1", cluster = "group"))
+      {
+        workbook$model[[idx]] <<- model_plm
+        names(workbook$model)[idx] <<- suffix
+      }
+
+  }
+
+  
   # ---- Importando Dados ----
   # O ideal é montar um base com:
   # 5570 (municípios) * 13 (anos entre 2010-2022) = 72410 observações
@@ -236,6 +312,10 @@
                           st_set_crs(st_crs(municipalities)), sparse = F)
 
 
+  # (iii) Municípios da Amazônia Legal
+  
+  municipalities_la <- st_intersects(municipalities, geobr::read_amazon(), sparse = F)
+
   # Criando dataset final
 
   dataset = municipalities %>% 
@@ -246,7 +326,12 @@
     bind_cols(municipalities_w_gr %>%
               as_tibble(.name_repair = "minimal") %>% 
               rename(intersects = 1) %>%
-              mutate(res_ou = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>% 
+              mutate(res_ou = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>%
+    # la = 1 se o município possuir território dentro da Amazônia Legal
+    bind_cols(municipalities_la %>%
+              as_tibble(.name_repair = "minimal") %>% 
+              rename(intersects = 1) %>%
+              mutate(la = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>% 
     # Juntando via right_join para manter apenas municípios que possuem dados de homicídios (DataSUS) 
     right_join(homicides_ds %>% select(-municipio), by = "code_muni") %>% 
     # Criando dummy para o tratamento e transformando `ano` em factor
@@ -254,6 +339,7 @@
            ano = factor(ano)) %>% 
     relocate(ano, .before = code_muni)
   
+  # Identificando limítrofes
   dataset <- dataset %>% 
     left_join(
         dataset %>% 
@@ -267,114 +353,51 @@
         by = "code_muni"
     ) %>% 
     mutate(lim = ifelse((ti == 1 & res_ou == 1) | is.na(lim), 0, lim))
-  
+ 
         
   rm(municipalities, neighboring_municipalities, indigenous_lands, gold_reserves, homicides,
-     population, munincipalities_w_il, municipalities_w_gr)
+     population, munincipalities_w_il, municipalities_w_gr, municipalities_la)
+ 
   
+  # Salvando base final
+  save(list = ls(), file = "dataset.RData")
 
 
-  # ---- Regressões ----
-  
-  # Criando dummies de Tratamento x Ano para o Teste de Tendências Paralelas
-  dataset <- dataset %>%
-    # Step 1: Create a treatment indicator that is 1 for treated units in all periods  
-    mutate(treatment_unit = ifelse(any(ti == 1 & res_ou == 1), 1, 0), .by = code_muni) %>% 
-    # Step 2: Create time period dummies interacted with the Rebate_dummy
-    mutate(
-      treatment_unit_2010 = ifelse(ano == 2010, treatment_unit, 0),
-      treatment_unit_2011 = ifelse(ano == 2011, treatment_unit, 0),
-      treatment_unit_2012 = ifelse(ano == 2012, treatment_unit, 0),
-      treatment_unit_2013 = ifelse(ano == 2013, treatment_unit, 0),
-      treatment_unit_2014 = ifelse(ano == 2014, treatment_unit, 0),
-      treatment_unit_2015 = ifelse(ano == 2015, treatment_unit, 0),
-      treatment_unit_2016 = ifelse(ano == 2016, treatment_unit, 0),
-      treatment_unit_2017 = ifelse(ano == 2017, treatment_unit, 0),
-      # Exclude treatment_unit_2018 to use it as the year reference
-      treatment_unit_2019 = ifelse(ano == 2019, treatment_unit, 0),  # 1st year of treatment
-      treatment_unit_2020 = ifelse(ano == 2020, treatment_unit, 0),
-      treatment_unit_2021 = ifelse(ano == 2021, treatment_unit, 0),
-      treatment_unit_2022 = ifelse(ano == 2022, treatment_unit, 0)   # Post-treatment years
-    )
+  # ---- Workbook of Models ----
 
+  ## [def] Exercício default (Grupo de Controle: todos os municípios que não possuírem (ti == 1 & res_ou == 1)
+  ## [def_1022] Exercício default exc. 2010 e 2022 (anos de Censo) 
+  ## [cg2] Grupo de Controle: municípios limítrofes e que não possuem (ti == 1 & res_ou == 1) 
+  ## [cg3] Grupo de Controle: apenas municípios com terra indígena
+  ## [cg4] Grupo de Controle: apenas municípios com reserva de ouro
+  ## [tr2] Grupo de Tratamento: Amazônia Legal (la == 1) -> tx_hom_tot ~ la + pos2018 + la:pos2018
+  ## [tr3] Grupo de Tratamento: Amazônia Legal e Reserva de Ouro (la == 1 & res_ou == 1) -> tx_hom_tot ~ res_ou:pos2018 + la:pos2018 + res_ou:la:pos2018
+  ## [la1] Exercício default restringido à Amazônia Legal
 
-  ### i) Grupo de Controle: todos os municípios que não possuírem (ti == 1 & res_ou == 1) 
+  # Creating list
+  workbook <- list(dataset = list(), plot_trend = list(), plot_ratio = list(),
+                  event_study_rse = list(), plot_event_study = list(),
+                  model = list())
 
-  plot_trend(dataset)
-  plot_ratio(dataset, ano, razao_tx_hom_tot)
+  # Running models
+  tribble(
+    ~suffix,     ~filter_expr,                                       ~treatment_condition_epxr, ~years,                  ~model_expr,
+    "def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018", 
+    "def_1022",  "filter(., ano %in% c(2011:2017, 2019:2021))",      "res_ou == 1 & ti == 1",   c(2011:2017, 2019:2021), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
+    "cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
+    "cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
+    "cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
+    "tr2",       NA,                                                 "la == 1",                 c(2010:2017, 2019:2022), "tx_hom_tot ~ la + pos2018 + la:pos2018",
+    "tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + la:pos2018 + res_ou:la:pos2018",
+    "la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018"
+  ) %T>% 
+  { dict <<- . } %>% 
+  mutate(idx = row_number(), .before = suffix) %>%
+  pwalk(.f = function(idx, suffix, filter_expr, treatment_condition_epxr, years, model_expr) {
+    deploy_models(idx, suffix, filter_expr, treatment_condition_epxr, years, model_expr)
+  }) 
 
-  ## Teste para Tendências Paralelas  
-  event_study_model <- plm(
-    tx_hom_tot ~ treatment_unit_2010 + treatment_unit_2011 + treatment_unit_2012 +
-      treatment_unit_2013 + treatment_unit_2014 + treatment_unit_2015 + treatment_unit_2016 +
-      treatment_unit_2017 + treatment_unit_2019 + treatment_unit_2020 + treatment_unit_2021 +
-      treatment_unit_2022,
-    data = pdata.frame(dataset, index = c("name_muni", "ano")), 
-    model = "within", effect = "twoway"
-  )
-  
-  # Step 4: Obtain cluster-robust standard errors
-  event_study_robust_se <- coeftest(event_study_model, 
-                                    vcov = vcovHC(event_study_model, type = "HC1", cluster = "group")) %>% 
-                            # Step 5: Extract coefficients for plotting
-                            tidy() %>%
-                            filter(grepl("treatment_unit_", term))
-  event_study_robust_se
-  
-  # Gráfico
-  plot_event_study(event_study_robust_se, as.numeric(gsub("treatment_unit_", "", term)) - 2018, estimate)
-  
-  ## Model
-  
-  # plm package
-  model_plm <- plm(
-    tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018,
-    data = pdata.frame(dataset, index = c("name_muni", "ano")), 
-    model = "within", effect = "twoways"
-  )
-  model_plm
-  coeftest(model_plm, vcov = vcovHC(model_plm, type = "HC1", cluster = "group"))
-  
-  # feols package (same result)
-  model_feols <- feols(tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018 | ano + code_muni, 
-                 data = base_final)
-  summary(model_feols, vcov = ~code_muni)
-  
-  
-  ### ii) Grupo de Controle: municípios limítrofes e que não possuem (ti == 1 & res_ou == 1) 
-  
-  dataset_cg2 <- dataset %>% 
-    filter((res_ou == 1 & ti == 1) | lim == 1)
-  
-  plot_trend(dataset_cg2)
-  plot_ratio(dataset_cg2, ano, razao_tx_hom_tot)
-
-  ## Teste para Tendências Paralelas
-  event_study_model_cg2 <- plm(
-    tx_hom_tot ~ treatment_unit_2010 + treatment_unit_2011 + treatment_unit_2012 +
-      treatment_unit_2013 + treatment_unit_2014 + treatment_unit_2015 + treatment_unit_2016 +
-      treatment_unit_2017 + treatment_unit_2019 + treatment_unit_2020 + treatment_unit_2021 +
-      treatment_unit_2022,
-    data = pdata.frame(dataset_cg2, index = c("name_muni", "ano")), 
-    model = "within", effect = "twoway"
-  )
-  
-  # Step 4: Obtain cluster-robust standard errors
-  event_study_robust_se_cg2 <- coeftest(event_study_model_cg2, 
-                                    vcov = vcovHC(event_study_model_cg2, type = "HC1", cluster = "group")) %>% 
-                            # Step 5: Extract coefficients for plotting
-                            tidy() %>%
-                            filter(grepl("treatment_unit_", term))
-  event_study_robust_se_cg2
-  
-  # Gráfico
-  plot_event_study(event_study_robust_se_cg2, as.numeric(gsub("treatment_unit_", "", term)) - 2018, estimate)
-  
-  ## Model
-  model_plm_cg2 <- plm(
-    tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018,
-    data = pdata.frame(dataset_cg2, index = c("name_muni", "ano")), 
-    model = "within", effect = "twoways"
-  )
-  model_plm_cg2
-  coeftest(model_plm_cg2, vcov = vcovHC(model_plm_cg2, type = "HC1", cluster = "group"))
+  # Charts
+  make_plot_grid("plot_trend")
+  make_plot_grid("plot_ratio")
+  make_plot_grid("plot_event_study")
