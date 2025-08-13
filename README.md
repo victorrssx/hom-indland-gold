@@ -2,11 +2,11 @@
 
 ## Propósito do Estudo
 
-A ideia é investigar a relação causal da eleição de 2018 nas taxas de homicídio dos municípios brasileiros com terras indígenas e reservas auríferas. O objetivo principal é identificar o **efeito causal** da eleição de Bolsonaro sobre a violência através de um exercício de **diferenças em diferenças (DiD)**, utilizando a marcação de terras indígenas e reservas de ouro para delimitar o grupo de tratamento.
+A ideia é investigar a relação causal da redução de *enforcement* em relação a mineração/garimpo ilegal, em função da eleição de Jair Bolsonaro, nas taxas de homicídio dos municípios brasileiros com terras indígenas e reservas auríferas. O objetivo principal é identificar o **efeito causal** que as políticas pós Bolsonaro tiveram sobre a violência através de um exercício de **diferenças em diferenças (DiD)**, utilizando a marcação de terras indígenas e reservas de ouro para delimitar o grupo de tratamento.
 
 ## Contexto e Motivação
 
-A literatura sobre conflitos por recursos naturais e direitos territoriais sugere que a sobreposição entre terras indígenas e áreas com potencial mineral pode gerar tensões e aumentar a violência local. Supõe-se que a eleição de Jair Bolsonaro para Presidente da República tenha agravado as disputas, elevando a taxa de homicídios em relação ao municípios semelhantes que não possuem tal característica de conflito. Este estudo busca testar empiricamente esta hipótese, controlando por características municipais observáveis e não observáveis.
+A literatura sobre conflitos por recursos naturais e direitos territoriais sugere que a sobreposição entre terras indígenas e áreas com potencial mineral pode gerar tensões e aumentar a violência local. Supõe-se que a eleição de Jair Bolsonaro para Presidente da República tenha agravado as disputas, mediante redução de *enforcement*, elevando a taxa de homicídios em relação ao municípios semelhantes que não possuem tal característica de conflito. Este estudo busca testar empiricamente esta hipótese, controlando por características municipais observáveis e não observáveis.
 
 ## Metodologia
 
@@ -24,18 +24,18 @@ A literatura sobre conflitos por recursos naturais e direitos territoriais suger
 Com a marcação ✔️, dados que foram efetivamente utilizados em algum momento.
 
 1. **Municípios**:
-   - {geobr} apud IBGE ✔️
-   - IBGE (municípios limítrofes) ✔️
+   - [{geobr} apud IBGE](https://github.com/ipeaGIT/geobr) ✔️
+   - [IBGE (municípios limítrofes)](https://www.ibge.gov.br/geociencias/organizacao-do-territorio/estrutura-territorial/42224-municipios-limitrofes.html) ✔️
 
 2. **Homicídios**: 
    - DataSUS (Sistema de Informações sobre Mortalidade) ✔️
    - Atlas da Violência (IPEA)
 
 3. **Dados Populacionais**: 
-   - Instituto Brasileiro de Geografia e Estatística (IBGE) - Estimativas Populacionais enviadas ao TCU para cômputo do FPM ✔️
+   - [DataSUS apud IBGE - Estimativas Populacionais enviadas ao TCU para cômputo do FPM](http://tabnet.datasus.gov.br/cgi/tabcgi.exe?ibge/cnv/poptbr.def) ✔️
 
 4. **Terras Indígenas**: 
-   - Fundação Nacional dos Povos Indígenas (FUNAI) - Arquivos shapefile com delimitação territorial ✔️
+   - [Fundação Nacional dos Povos Indígenas (FUNAI) - Geoserver](https://geoserver.funai.gov.br/geoserver/web/wicket/bookmarkable/org.geoserver.web.demo.MapPreviewPage?2&filter=false) ✔️
 
 5. **Reservas Auríferas**: 
    - Serviço Geológico do Brasil (SGB/CPRM) - Províncias e Distritos Auríferos do Brasil (escala 1:5.000.000) ✔️
