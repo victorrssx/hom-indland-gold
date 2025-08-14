@@ -383,7 +383,7 @@
   tribble(
     ~suffix,     ~filter_expr,                                       ~treatment_condition_epxr, ~years,                  ~model_expr,
     "def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018", 
-    "def_1022",  "filter(., ano %in% c(2011:2017, 2019:2021))",      "res_ou == 1 & ti == 1",   c(2011:2017, 2019:2021), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
+    "def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2017, 2019:2021), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
     "cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
     "cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
     "cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
