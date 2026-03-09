@@ -82,23 +82,24 @@
   }
 
   ## Event Study
-  plot_event_study <- function(data, x_column, y_column) {
-    ggplot(data, aes(x = as.numeric({{x_column}}), y = {{y_column}})) +
+  plot_event_study <- function(data, x_column, y_column, remove_year) {
+    ggplot(data, aes(x = {{x_column}}, y = {{y_column}})) +
     geom_point() +
     geom_errorbar(aes(ymin = {{y_column}} - 1.96 * std.error,
                       ymax = {{y_column}} + 1.96 * std.error)) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "blue") +
+    geom_vline(xintercept = remove_year, linetype = "dashed", color = "blue") +
     geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
-    labs(x = "Years relative to treatment (2018 = 0)",
-         y = "Effect on homicide rate",
-         title = "Event Study: Homicides in Treated Municipalities") +
+    scale_x_continuous(breaks = seq(2010, 2022, by = 1)) +
+    labs(x = "Years", #"Years relative to treatment (2018 = 0)",
+         y = "DDD coefficient (Gold x TI x year)",
+         title = "Dynamic DDD") +
     theme_minimal()
   }
 
   ## Plot Grid
   make_plot_grid <- function(plot_type, ncol = 4) {
   dict %>%
-    dplyr::pull(suffix) %>%
+    dplyr::pull(model_name) %>%
     as.character() %>%
     purrr::keep(~ .x %in% names(workbook[[plot_type]])) %>%
     purrr::map(~ workbook[[plot_type]][[.x]] +
@@ -114,11 +115,11 @@
 
   # ---- Função para os Modelos ----
 
-  deploy_models <- function(idx, suffix, filter_expr, treatment_condition_expr, years, model_expr) {
+  deploy_models <- function(idx, model_name, sample_filter_expr, treatment_condition_expr, years, model_expr) {
 
     # Dataset adjust to modelling
     temp_dataset <- dataset %>%
-      { if (is.na(filter_expr)) . else eval_tidy(parse_expr(filter_expr), data = .) } %>% # Additional filter
+      { if (is.na(sample_filter_expr)) . else eval_tidy(parse_expr(sample_filter_expr), data = .) } %>% # Additional filter
       # Step 1: Create a treatment indicator that is 1 for treated units in all periods
       mutate(treatment_unit = ifelse(any(!!parse_expr(treatment_condition_expr)), 1, 0), .by = code_muni) %>%
       # Step 2: Create time period dummies interacted with the Rebate_dummy
@@ -129,15 +130,15 @@
       # Adicionar resultado à lista usando índice
       {
         workbook$dataset[[idx]] <<- temp_dataset
-        names(workbook$dataset)[idx] <<- suffix
+        names(workbook$dataset)[idx] <<- model_name
       }
       {
         workbook$plot_trend[[idx]] <<- plot_trend(temp_dataset)
-        names(workbook$plot_trend)[idx] <<- suffix
+        names(workbook$plot_trend)[idx] <<- model_name
       }
       {
         workbook$plot_ratio[[idx]] <<- plot_ratio(temp_dataset, ano, razao_tx_hom_tot)
-        names(workbook$plot_ratio)[idx] <<- suffix      
+        names(workbook$plot_ratio)[idx] <<- model_name      
       }
     
     # Step 3: Creating Event Study & Obtain cluster-robust standard errors
@@ -152,12 +153,12 @@
       filter(grepl("treatment_unit_", term))
       {
         workbook$event_study_rse[[idx]] <<- event_study_robust_se
-        names(workbook$event_study_rse)[idx] <<- suffix
+        names(workbook$event_study_rse)[idx] <<- model_name
       }
       {
         workbook$plot_event_study[[idx]] <<- plot_event_study(event_study_robust_se, 
                                                       as.numeric(gsub("treatment_unit_", "", term)) - 2018, estimate)
-        names(workbook$plot_event_study)[idx] <<- suffix
+        names(workbook$plot_event_study)[idx] <<- model_name
       }
     
     # Step 6: Model (plm package)
@@ -169,7 +170,7 @@
     coeftest(., vcov = vcovHC(., type = "HC1", cluster = "group"))
       {
         workbook$model[[idx]] <<- model_plm
-        names(workbook$model)[idx] <<- suffix
+        names(workbook$model)[idx] <<- model_name
       }
 
   }
@@ -199,6 +200,14 @@
                                 clean_names() %>% 
                                 rename(code_muni = cd_mun) %>% 
                                 mutate(code_muni = as.character(substr(code_muni, 1, 6)), lim = 1)
+  
+  
+  ## Municípios - Bioma Predominante
+  # Fonte: IBGE
+  
+  biomes <- read_xlsx("./1. Dados Municipais/Bioma Predominante por Município - IBGE (2024).xlsx", sheet = 1, skip = 1) %>% 
+            clean_names() %>% 
+            rename(bioma = bioma_predominante)
   
   
   ## Territórios Indígenas 
@@ -331,11 +340,14 @@
     bind_cols(municipalities_la %>%
               as_tibble(.name_repair = "minimal") %>% 
               rename(intersects = 1) %>%
-              mutate(la = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>% 
+              mutate(la = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>%
+    # Juntando via left_join para adicionar biomas
+    left_join(biomes %>% mutate(code_muni = substr(as.character(geocodigo), 1, 6)) %>% select(code_muni, bioma), by = "code_muni") %>% 
     # Juntando via right_join para manter apenas municípios que possuem dados de homicídios (DataSUS) 
     right_join(homicides_ds %>% select(-municipio), by = "code_muni") %>% 
     # Criando dummy para o tratamento e transformando `ano` em factor
-    mutate(pos2018 = ifelse(ano > 2018, 1, 0),
+    mutate(pos2016 = ifelse(ano >= 2016, 1, 0),
+           pos2017 = ifelse(ano >= 2017, 1, 0),
            ano = factor(ano)) %>% 
     relocate(ano, .before = code_muni)
   
@@ -355,12 +367,13 @@
     mutate(lim = ifelse((ti == 1 & res_ou == 1) | is.na(lim), 0, lim))
  
         
+  aux <- list(municipalities, neighboring_municipalities, indigenous_lands, gold_reserves, homicides,
+              population, munincipalities_w_il, municipalities_w_gr, municipalities_la, biomes)
   rm(municipalities, neighboring_municipalities, indigenous_lands, gold_reserves, homicides,
-     population, munincipalities_w_il, municipalities_w_gr, municipalities_la)
- 
+     population, munincipalities_w_il, municipalities_w_gr, municipalities_la, biomes)
   
   # Salvando base final
-  save(list = ls(), file = "dataset.RData")
+  save(dataset, file = "dataset.RData")
 
 
   # ---- Workbook of Models ----
@@ -381,23 +394,44 @@
 
   # Running models
   tribble(
-    ~suffix,     ~filter_expr,                                       ~treatment_condition_epxr, ~years,                  ~model_expr,
-    "def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018", 
-    "def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2017, 2019:2021), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
-    "cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
-    "cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
-    "cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018",
-    "tr2",       NA,                                                 "la == 1",                 c(2010:2017, 2019:2022), "tx_hom_tot ~ la + pos2018 + la:pos2018",
-    "tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + la:pos2018 + res_ou:la:pos2018",
-    "la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2017, 2019:2022), "tx_hom_tot ~ res_ou:pos2018 + ti:pos2018 + res_ou:ti:pos2018"
+    ~model_name,     ~sample_filter_expr,                                       ~treatment_group_condition_epxr, ~years,                  ~model_expr,
+    # 2016
+    "2016_def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
+    "2016_def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2014, 2016:2021), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou + pos2016 + res_ou:pos2016",
+    "2016_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ ti + pos2016 + ti:pos2016",
+    "2016_tr2",       NA,                                                 "la == 1",                 c(2010:2014, 2016:2022), "tx_hom_tot ~ la + pos2016 + la:pos2016",
+    "2016_tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + la:pos2016 + res_ou:la:pos2016",
+    "2016_la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_bio",       "filter(., bioma %in% c('Amazônia', 'Cerrado'))",   "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
+    
+    # 2018
+    "2017_def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017", 
+    "2017_def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2015, 2017:2021), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou + pos2017 + res_ou:pos2017",
+    "2017_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ ti + pos2017 + ti:pos2017",
+    "2017_tr2",       NA,                                                 "la == 1",                 c(2010:2015, 2017:2022), "tx_hom_tot ~ la + pos2017 + la:pos2017",
+    "2017_tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + la:pos2017 + res_ou:la:pos2017",
+    "2017_la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_bio",       "filter(., bioma %in% c('Amazônia', 'Cerrado'))",   "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
   ) %T>% 
   { dict <<- . } %>% 
-  mutate(idx = row_number(), .before = suffix) %>%
-  pwalk(.f = function(idx, suffix, filter_expr, treatment_condition_epxr, years, model_expr) {
-    deploy_models(idx, suffix, filter_expr, treatment_condition_epxr, years, model_expr)
+  mutate(idx = row_number(), .before = model_name) %>%
+  pwalk(.f = function(idx, model_name, sample_filter_expr, treatment_group_condition_epxr, years, model_expr) {
+    deploy_models(idx, model_name, sample_filter_expr, treatment_group_condition_epxr, years, model_expr)
   }) 
 
   # Charts
   make_plot_grid("plot_trend")
   make_plot_grid("plot_ratio")
   make_plot_grid("plot_event_study")
+  
+  workbook$model$`2016_bio`
+  plot_event_study(workbook$event_study_rse$`2016_bio`, as.numeric(gsub("treatment_unit_", "", term))[as.numeric(gsub("treatment_unit_", "", term)) != 2015], estimate, 2015)
+
+  workbook$model$`2017_bio`
+  plot_event_study(workbook$event_study_rse$`2017_bio`, as.numeric(gsub("treatment_unit_", "", term))[as.numeric(gsub("treatment_unit_", "", term)) != 2016], estimate, 2016)
+  
+  
