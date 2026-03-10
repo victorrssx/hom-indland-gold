@@ -1,0 +1,80 @@
+\begin{thebibliography}{7}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\href}[2]{#2}
+\providecommand{\path}[1]{#1}
+\providecommand{\DOIprefix}{doi:}
+\providecommand{\ArXivprefix}{arXiv:}
+\providecommand{\URLprefix}{URL: }
+\providecommand{\Pubmedprefix}{pmid:}
+\providecommand{\doi}[1]{\href{http://dx.doi.org/#1}{\path{#1}}}
+\providecommand{\Pubmed}[1]{\href{pmid:#1}{\path{#1}}}
+\providecommand{\bibinfo}[2]{#2}
+\ifx\xfnm\relax \def\xfnm[#1]{\unskip,\space#1}\fi
+%Type = Article
+\bibitem[{Braganca and Dahis(2022)}]{braganca2022cutting}
+\bibinfo{author}{Braganca, A.}, \bibinfo{author}{Dahis, R.},
+  \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{Cutting special interests by the roots: Evidence from
+  the brazilian amazon}.
+\newblock \bibinfo{journal}{Journal of Public Economics} \bibinfo{volume}{215},
+  \bibinfo{pages}{104753}.
+\newblock \DOIprefix\doi{10.1016/j.jpubeco.2022.104753}.
+%Type = Article
+\bibitem[{Dube and Vargas(2013)}]{dube2013commodity}
+\bibinfo{author}{Dube, O.}, \bibinfo{author}{Vargas, J.F.},
+  \bibinfo{year}{2013}.
+\newblock \bibinfo{title}{Commodity price shocks and civil conflict: Evidence
+  from colombia}.
+\newblock \bibinfo{journal}{Review of Economic Studies} \bibinfo{volume}{80},
+  \bibinfo{pages}{1384--1421}.
+%Type = Techreport
+\bibitem[{Falcone and Rosenberg(2022)}]{falcone2022modernization}
+\bibinfo{author}{Falcone, S.}, \bibinfo{author}{Rosenberg, M.},
+  \bibinfo{year}{2022}.
+\newblock \bibinfo{title}{Agricultural modernization and land conflict}.
+\newblock \bibinfo{type}{Technical Report}. Barcelona School of Economics
+  Working Paper.
+%Type = Article
+\bibitem[{Fetzer and Marden(2017)}]{fetzer2017property}
+\bibinfo{author}{Fetzer, T.}, \bibinfo{author}{Marden, S.},
+  \bibinfo{year}{2017}.
+\newblock \bibinfo{title}{Take what you can: property rights, contestability
+  and conflict}.
+\newblock \bibinfo{journal}{The Economic Journal} \bibinfo{volume}{127},
+  \bibinfo{pages}{757--783}.
+%Type = Article
+\bibitem[{Moreno-Louzada and Menezes-Filho(2024)}]{moreno2024technical}
+\bibinfo{author}{Moreno-Louzada, L.}, \bibinfo{author}{Menezes-Filho, N.},
+  \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{Technical change in agriculture and homicides: The
+  case of genetically-modified soy seeds in brazil}.
+\newblock \bibinfo{journal}{Economics Letters} \bibinfo{volume}{234},
+  \bibinfo{pages}{111502}.
+%Type = Article
+\bibitem[{Nunes et~al.(2024)Nunes, Soares-Filho, Oliveira, Veloso, Schmitt,
+  Van~der Hoff, Assis, Costa, Borner, Ribeiro, Rajao, Oliveira and
+  Costa}]{nunes2024lessons}
+\bibinfo{author}{Nunes, F.S.M.}, \bibinfo{author}{Soares-Filho, B.S.},
+  \bibinfo{author}{Oliveira, A.R.}, \bibinfo{author}{Veloso, L.V.S.},
+  \bibinfo{author}{Schmitt, J.}, \bibinfo{author}{Van~der Hoff, R.},
+  \bibinfo{author}{Assis, D.C.}, \bibinfo{author}{Costa, R.P.},
+  \bibinfo{author}{Borner, J.}, \bibinfo{author}{Ribeiro, S.M.C.},
+  \bibinfo{author}{Rajao, R.G.L.}, \bibinfo{author}{Oliveira, U.d.},
+  \bibinfo{author}{Costa, M.A.}, \bibinfo{year}{2024}.
+\newblock \bibinfo{title}{Lessons from the historical dynamics of environmental
+  law enforcement in the brazilian amazon}.
+\newblock \bibinfo{journal}{Scientific Reports} \bibinfo{volume}{14},
+  \bibinfo{pages}{1828}.
+\newblock \DOIprefix\doi{10.1038/s41598-024-52180-7}.
+%Type = Article
+\bibitem[{Pereira and Pucci(2026)}]{pereira_pucci_2024}
+\bibinfo{author}{Pereira, L.}, \bibinfo{author}{Pucci, R.},
+  \bibinfo{year}{2026}.
+\newblock \bibinfo{title}{A tale of gold and blood: The consequences of market
+  deregulation on local violence}.
+\newblock \bibinfo{journal}{Journal of Public Economics} \bibinfo{volume}{253},
+  \bibinfo{pages}{105559}.
+\newblock \DOIprefix\doi{10.1016/j.jpubeco.2025.105559}.
+
+\end{thebibliography}

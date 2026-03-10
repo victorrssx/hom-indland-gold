@@ -1,0 +1,87 @@
+Amazonia+Cerrado (any overlap) sample, 2010-2022
+Municipalities: 1859 
+Observations: 24167 
+
+Main DDD (Post>=2016):
+                   Estimate Std. Error    t value   Pr(>|t|)
+gold:post2016     2.5289986   1.332474  1.8979727 0.05785811
+post2016:ti      -0.1524124   1.132958 -0.1345261 0.89300148
+gold:post2016:ti  8.7689643   3.418665  2.5650258 0.01039652
+attr(,"type")
+[1] "Clustered (code_muni)"
+
+Robustness DDD (Post>=2017):
+                  Estimate Std. Error   t value   Pr(>|t|)
+gold:post2017    2.8863366   1.387520 2.0802123 0.03764598
+post2017:ti      0.4137349   1.117819 0.3701268 0.71133115
+gold:post2017:ti 8.8059999   3.549557 2.4808726 0.01319608
+attr(,"type")
+[1] "Clustered (code_muni)"
+
+State-year FE (Post>=2016):
+                  Estimate Std. Error   t value    Pr(>|t|)
+gold:post2016     1.749575   1.353893  1.292255 0.196433223
+post2016:ti      -2.380651   1.393530 -1.708360 0.087740632
+gold:post2016:ti  9.711198   3.470338  2.798343 0.005190819
+attr(,"type")
+[1] "Clustered (code_muni)"
+
+DD slices:
+                             model   estimate std_error      p_value n_obs
+1 DD within TI=1 (Gold x Post2016) 11.3221837  3.159945 0.0003993064  3274
+2 DD within TI=0 (Gold x Post2016)  2.5205494  1.333224 0.0588709513 14250
+3 DD within Gold=1 (TI x Post2016)  8.5608026  3.218719 0.0081994348  3353
+4 DD within Gold=0 (TI x Post2016) -0.1379879  1.133028 0.9030843690 14171
+5  DDD main (Gold x TI x Post2016)  8.7689643  3.418665 0.0103965158 17524
+
+Additional checks:
+                                                          check  estimate
+1                             Main DDD (Post2016, muni+year FE)  8.768964
+2                       Robustness DDD (Post2017, muni+year FE)  8.806000
+3                       Main DDD (Post2016, muni+state-year FE)  9.711198
+4              Population-weighted DDD (Post2016, muni+year FE)  9.651952
+5        Population-weighted DDD (Post2016, muni+state-year FE)  7.436386
+6 Placebo fake post>=2013 (pre-period only, muni+state-year FE)  1.921896
+7 Placebo fake post>=2014 (pre-period only, muni+state-year FE) -0.125373
+  std_error     p_value
+1  3.418665 0.010396516
+2  3.549557 0.013196077
+3  3.470338 0.005190819
+4  3.957537 0.014828125
+5  3.670161 0.042892924
+6  2.537181 0.448864976
+7  2.460377 0.959366219
+
+Pre-trend test baseline (2010-2014 joint):
+$stat
+[1] 0.3349317
+
+$p
+[1] 0.8920679
+
+$df1
+[1] 5
+
+$df2
+[1] 15659
+
+$vcov
+[1] "Clustered (code_muni)"
+
+
+Pre-trend test state-year FE (2010-2014 joint):
+$stat
+[1] 0.2251605
+
+$p
+[1] 0.9517883
+
+$df1
+[1] 5
+
+$df2
+[1] 15452
+
+$vcov
+[1] "Clustered (code_muni)"
+
