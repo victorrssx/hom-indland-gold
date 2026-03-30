@@ -82,12 +82,12 @@
   }
 
   ## Event Study
-  plot_event_study <- function(data, x_column, y_column, remove_year) {
+  plot_event_study <- function(data, x_column, y_column) {
     ggplot(data, aes(x = {{x_column}}, y = {{y_column}})) +
     geom_point() +
     geom_errorbar(aes(ymin = {{y_column}} - 1.96 * std.error,
                       ymax = {{y_column}} + 1.96 * std.error)) +
-    geom_vline(xintercept = remove_year, linetype = "dashed", color = "blue") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "blue") +
     geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
     scale_x_continuous(breaks = seq(2010, 2022, by = 1)) +
     labs(x = "Years", #"Years relative to treatment (2018 = 0)",
@@ -157,7 +157,8 @@
       }
       {
         workbook$plot_event_study[[idx]] <<- plot_event_study(event_study_robust_se, 
-                                                      as.numeric(gsub("treatment_unit_", "", term)) - 2018, estimate)
+                                                              as.numeric(gsub("treatment_unit_", "", term)) - setdiff(2010:2022, years), 
+                                                              estimate)
         names(workbook$plot_event_study)[idx] <<- model_name
       }
     
@@ -203,11 +204,16 @@
   
   
   ## Municípios - Bioma Predominante
+  ## Municípios - Biomas
   # Fonte: IBGE
   
-  biomes <- read_xlsx("./1. Dados Municipais/Bioma Predominante por Município - IBGE (2024).xlsx", sheet = 1, skip = 1) %>% 
-            clean_names() %>% 
-            rename(bioma = bioma_predominante)
+  predominant_biome <- read_xlsx("./1. Dados Municipais/Bioma Predominante por Município - IBGE (2024).xlsx", sheet = 1, skip = 1) %>% 
+                       clean_names() %>% 
+                       rename(bioma = bioma_predominante)
+  
+  all_biomes <- read_xlsx("./1. Dados Municipais/Biomas por Município - IBGE (2024).xlsx", sheet = 1) %>% 
+                clean_names() %>% 
+                rename(bioma_all = bioma)
   
   
   ## Territórios Indígenas 
@@ -342,9 +348,18 @@
               rename(intersects = 1) %>%
               mutate(la = ifelse(intersects == TRUE, 1, 0), .keep = "unused")) %>%
     # Juntando via left_join para adicionar biomas
-    left_join(biomes %>% mutate(code_muni = substr(as.character(geocodigo), 1, 6)) %>% select(code_muni, bioma), by = "code_muni") %>% 
+    left_join(predominant_biome %>% 
+              mutate(code_muni = substr(as.character(geocodigo), 1, 6)) %>% 
+              select(code_muni, bioma), 
+              by = "code_muni") %>%
+    left_join(all_biomes %>% 
+              filter(bioma_all %in% c('Amazônia', 'Cerrado')) %>% 
+              distinct(cd_geocmu) %>% 
+              mutate(code_muni = substr(as.character(cd_geocmu), 1, 6), amz_cer = T) %>% 
+              select(code_muni, amz_cer),
+              by = "code_muni") %>%
     # Juntando via right_join para manter apenas municípios que possuem dados de homicídios (DataSUS) 
-    right_join(homicides_ds %>% select(-municipio), by = "code_muni") %>% 
+    right_join(homicides_ds %>% select(-municipio), by = "code_muni", relationship = "many-to-many") %>% 
     # Criando dummy para o tratamento e transformando `ano` em factor
     mutate(pos2016 = ifelse(ano >= 2016, 1, 0),
            pos2017 = ifelse(ano >= 2017, 1, 0),
@@ -366,11 +381,22 @@
     ) %>% 
     mutate(lim = ifelse((ti == 1 & res_ou == 1) | is.na(lim), 0, lim))
  
-        
-  aux <- list(municipalities, neighboring_municipalities, indigenous_lands, gold_reserves, homicides,
-              population, munincipalities_w_il, municipalities_w_gr, municipalities_la, biomes)
+  #list2env(aux, envir = .GlobalEnv)
+  aux <- list(
+    municipalities = municipalities,
+    neighboring_municipalities = neighboring_municipalities,
+    indigenous_lands = indigenous_lands,
+    gold_reserves = gold_reserves,
+    homicides = homicides,
+    population = population,
+    munincipalities_w_il = munincipalities_w_il,
+    municipalities_w_gr = municipalities_w_gr,
+    municipalities_la = municipalities_la,
+    predominant_biome = predominant_biome,
+    all_biomes = all_biomes
+  )
   rm(municipalities, neighboring_municipalities, indigenous_lands, gold_reserves, homicides,
-     population, munincipalities_w_il, municipalities_w_gr, municipalities_la, biomes)
+     population, munincipalities_w_il, municipalities_w_gr, municipalities_la, predominant_biome, all_biomes)
   
   # Salvando base final
   save(dataset, file = "dataset.RData")
@@ -396,26 +422,26 @@
   tribble(
     ~model_name,     ~sample_filter_expr,                                       ~treatment_group_condition_epxr, ~years,                  ~model_expr,
     # 2016
-    "2016_def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
-    "2016_def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2014, 2016:2021), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
-    "2016_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
-    "2016_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou + pos2016 + res_ou:pos2016",
-    "2016_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ ti + pos2016 + ti:pos2016",
-    "2016_tr2",       NA,                                                 "la == 1",                 c(2010:2014, 2016:2022), "tx_hom_tot ~ la + pos2016 + la:pos2016",
-    "2016_tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + la:pos2016 + res_ou:la:pos2016",
-    "2016_la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
-    "2016_bio",       "filter(., bioma %in% c('Amazônia', 'Cerrado'))",   "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
+    "2016_def",       NA,                                                   "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
+    "2016_def_1022",  "filter(., ano %in% c(2011:2021))",                   "res_ou == 1 & ti == 1",   c(2011:2014, 2016:2021), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",      "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",       "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou + pos2016 + res_ou:pos2016",
+    "2016_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)",   "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ ti + pos2016 + ti:pos2016",
+    "2016_tr2",       NA,                                                   "la == 1",                 c(2010:2014, 2016:2022), "tx_hom_tot ~ la + pos2016 + la:pos2016",
+    "2016_tr3",       NA,                                                   "res_ou == 1 & la == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + la:pos2016 + res_ou:la:pos2016",
+    "2016_la1",       "filter(., la == 1)",                                 "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016",
+    "2016_bio",       "filter(., amz_cer == T)",                            "res_ou == 1 & ti == 1",   c(2010:2014, 2016:2022), "tx_hom_tot ~ res_ou:pos2016 + ti:pos2016 + res_ou:ti:pos2016", 
     
-    # 2018
-    "2017_def",       NA,                                                 "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017", 
-    "2017_def_1022",  "filter(., ano %in% c(2011:2021))",                 "res_ou == 1 & ti == 1",   c(2011:2015, 2017:2021), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
-    "2017_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",    "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
-    "2017_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",     "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou + pos2017 + res_ou:pos2017",
-    "2017_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)", "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ ti + pos2017 + ti:pos2017",
-    "2017_tr2",       NA,                                                 "la == 1",                 c(2010:2015, 2017:2022), "tx_hom_tot ~ la + pos2017 + la:pos2017",
-    "2017_tr3",       NA,                                                 "res_ou == 1 & la == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + la:pos2017 + res_ou:la:pos2017",
-    "2017_la1",       "filter(., la == 1)",                               "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
-    "2017_bio",       "filter(., bioma %in% c('Amazônia', 'Cerrado'))",   "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    # 2017
+    "2017_def",       NA,                                                   "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017", 
+    "2017_def_1022",  "filter(., ano %in% c(2011:2021))",                   "res_ou == 1 & ti == 1",   c(2011:2015, 2017:2021), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_cg2",       "filter(., (res_ou == 1 & ti == 1) | lim == 1)",      "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_cg3",       "filter(., (res_ou == 1 & ti == 1) | ti == 1)",       "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou + pos2017 + res_ou:pos2017",
+    "2017_cg4",       "filter(., (res_ou == 1 & ti == 1) | res_ou == 1)",   "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ ti + pos2017 + ti:pos2017",
+    "2017_tr2",       NA,                                                   "la == 1",                 c(2010:2015, 2017:2022), "tx_hom_tot ~ la + pos2017 + la:pos2017",
+    "2017_tr3",       NA,                                                   "res_ou == 1 & la == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + la:pos2017 + res_ou:la:pos2017",
+    "2017_la1",       "filter(., la == 1)",                                 "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
+    "2017_bio",       "filter(., amz_cer == T)",                            "res_ou == 1 & ti == 1",   c(2010:2015, 2017:2022), "tx_hom_tot ~ res_ou:pos2017 + ti:pos2017 + res_ou:ti:pos2017",
   ) %T>% 
   { dict <<- . } %>% 
   mutate(idx = row_number(), .before = model_name) %>%
