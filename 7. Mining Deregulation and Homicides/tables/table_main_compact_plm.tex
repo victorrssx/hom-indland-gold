@@ -1,0 +1,23 @@
+\begin{tabular}{lccc}
+\toprule
+& \multicolumn{3}{c}{Dependent variable: Homicide rate per 100,000} \\
+\cmidrule(lr){2-4}
+& Post>=2016 & Post>=2017 & Post>=2016 + state-year FE \\
+& (1) & (2) & (3) \\
+\midrule
+Gold $\times$ Post & 2.705** & 2.802** & 0.880 \\
+ & (1.077) & (1.152) & (1.135) \\
+TI $\times$ Post & -0.368 & 0.198 & -2.675** \\
+ & (1.006) & (0.990) & (1.197) \\
+Gold $\times$ TI $\times$ Post & 7.170*** & 7.727*** & 8.694*** \\
+ & (2.762) & (2.953) & (2.719) \\
+\midrule
+Municipality FE & Yes & Yes & Yes \\
+Year FE & Yes & Yes & No \\
+State-year FE & No & No & Yes \\
+Observations & 24163 & 24163 & 24163 \\
+\midrule
+\multicolumn{4}{l}{\footnotesize Standard errors in parentheses.} \\
+\multicolumn{4}{l}{\footnotesize *** p<0.01, ** p<0.05, * p<0.1.} \\
+\bottomrule
+\end{tabular}
