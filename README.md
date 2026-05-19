@@ -1,4 +1,6 @@
-# Homicides, Indigenous Lands/Territories, and Gold Reserves in Brazil
+# Weakening Environmental Enforcement and Homicides: Evidence from Indigenous Territories in Brazil
+
+The repository contains the data and code needed to reproduce the empirical results.
 
 ### Data Sources
 
