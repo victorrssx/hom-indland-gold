@@ -158,5 +158,40 @@ During the preparation of this work, the authors used Claude (Anthropic) for the
 \bibliographystyle{elsarticle-harv}
 \bibliography{references}
 
+\appendix
+
+\section{Data} \label{ap:data}
+
+This paper is based on three constructed variables: homicide rate per 100,000 inhabitants, a binary variable for gold mining reserves in the municipality, and a binary variable for indigenous territories in the municipality. Therefore, it is worth highlighting their composition and possible limitations.     
+
+\subsection*{A.1. Homicide Rate}
+
+The homicide rate is the simple ratio of homicides to population, multiplied by 100,000.
+
+\begin{itemize}
+    \item In the numerator, homicide is defined as the sum of three ICD-10 cause-of-death categories, by municipality of occurrence: assaults (X85–Y09), events of undetermined intent (Y10–Y34), and legal interventions (Y35). The raw data was sourced from SIM/DATASUS.
+    
+    \item In the denominator, population figures are estimated by the Brazilian Institute of Geography and Statistics (IBGE) for the Federal Court of Accounts (TCU), within the scope of the Municipalities Participation Fund (FPM), by municipality of residence. The data is available on the IBGE website.
+\end{itemize}
+
+It is worth mentioning some points. First, the numerator is measured by the municipality of \textit{occurrence} while the denominator is measured by the municipality of \textit{residence}. Although SIM/DATASUS allows, by default, the retrieval of deaths by municipality of residence, we opted for a perspective based on occurrence. The underlying reasoning is that municipalities where Indigenous territories overlap gold reserves often have a substantial share of inhabitants whose residence is outside the municipality –- that is, low-skilled workers who migrate from their places of residence in search of increased income from high rents of natural resources. In contrast, only IBGE's population estimates are available at the municipal level, and they only consider the perspective of residence.
+
+Second, other ICD-10 cause-of-death categories could be used to build the homicide variable -- or even some category could be removed. The existing literature often addresses homicides as a combination of one or more of the mentioned categories, in addition to intentional self-harm (X60-X84). We opted to include the three most used ICD-10 cause-of-death categories. A comprehensive table with all ICD-10 definitions ranging from X60 to Y35 is displayed for consultation.
+
+\begingroup
+\small
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{3.5pt}
+\input{tables/table_icd10.tex}
+\endgroup
+
+\subsection*{A.2. Gold Reserves}
+
+Based on \citet{sgb2024}, gold-bearing metallogenic provinces can be defined as regions where mineral occurrences and deposits appear in greater quantities or tonnage than neighboring areas, delimited by geologic-stratigraphic-tectonic boundaries, while districts are subdivisions of provinces, grouping spatially and genetically related deposits and occurrences. Therefore, we define \(Gold = 1\) for any municipality that overlaps at least one province or district of gold, considering that a district is not necessarily within a province. The polygons were obtained from the website of the Geological Survey of Brazil (SGB) in 2024.
+
+\subsection*{A.3. Indigenous Territories}
+
+The binary variable for indigenous territories was constructed based on the dataset of polygons of Indigenous territories made publicly available by National Foundation of Indigenous People (FUNAI) at GeoServer website. Therefore, we define \(IT = 1\) for any municipality that overlaps at least one indigenous territory in 2024.
+
 \end{document}
 
