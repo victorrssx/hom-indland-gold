@@ -250,7 +250,7 @@
     model_dual_break <- feols(
       as.formula(str_c(
         tx_var, " ~ gold:post2013 + il:post2013 + gold:il:post2013 + ", 
-                "gold:", post_var, " + il:", post_var," + gold:il:", post_var, " | code_muni + year^abbrev_state")),
+                "gold:", post_var, " + il:", post_var," + gold:il:", post_var, " | code_muni + year")),
       data = temp_dataset
     )
     ddd_est = tribble(~early, ~inc, ~total, 
