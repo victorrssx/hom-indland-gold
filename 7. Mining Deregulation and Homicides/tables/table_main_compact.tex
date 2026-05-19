@@ -1,24 +1,50 @@
+%\begin{tabular}{lccc}
+%\toprule
+%& \multicolumn{3}{c}{Dependent variable: Homicide rate per 100,000} \\
+%\cmidrule(lr){2-4}
+%& Post>=2016 & Post>=2017 & Post>=2016 + state-year FE \\
+%& (1) & (2) & (3) \\
+%\midrule
+%Gold $\times$ Post & 2.529* & 2.886** & 1.750 \\
+% & (1.332) & (1.388) & (1.354) \\
+%TI $\times$ Post & -0.152 & 0.414 & -2.381* \\
+% & (1.133) & (1.118) & (1.394) \\
+%Gold $\times$ TI $\times$ Post & 8.769** & 8.806** & 9.711*** \\
+% & (3.419) & (3.550) & (3.470) \\
+%\midrule
+%Municipality FE & Yes & Yes & Yes \\
+%Year FE & Yes & Yes & No \\
+%State-year FE & No & No & Yes \\
+%Observations & 17524 & 17524 & 17511 \\
+%Within R\textsuperscript{2} & 0.007 & 0.008 & 0.005 \\
+%\midrule
+%\multicolumn{4}{l}{\footnotesize Clustered standard errors by municipality in parentheses.} \\
+%\multicolumn{4}{l}{\footnotesize *** p<0.01, ** p<0.05, * p<0.1.} \\
+%\bottomrule
+%\end{tabular}
+
+{\fontsize{7}{8}\selectfont
 \begin{tabular}{lccc}
 \toprule
-& \multicolumn{3}{c}{Dependent variable: Homicide rate per 100,000} \\
+& \multicolumn{3}{c}{Dependent Variable: Homicide Rate per 100,000} \\
 \cmidrule(lr){2-4}
-& Post>=2016 & Post>=2017 & Post>=2016 + state-year FE \\
+& Post $\geq$ 2016 & Post $\geq$ 2017 & \makecell{Post $\geq$ 2016 $+$ \\ State-year FE} \\
 & (1) & (2) & (3) \\
 \midrule
-Gold $\times$ Post & 2.529* & 2.886** & 1.750 \\
- & (1.332) & (1.388) & (1.354) \\
-TI $\times$ Post & -0.152 & 0.414 & -2.381* \\
- & (1.133) & (1.118) & (1.394) \\
-Gold $\times$ TI $\times$ Post & 8.769** & 8.806** & 9.711*** \\
- & (3.419) & (3.550) & (3.470) \\
+Gold $\times$ Post & 2.662** & 2.761** & 0.884 \\ 
+& (1.065) & (1.138) & (1.125) \\
+IT $\times$ Post & -0.343 & 0.214 & -2.673** \\
+& (1.005) & (0.989) & (1.202) \\
+Gold $\times$ IT $\times$ Post & 7.211*** & 7.767*** & 8.691*** \\
+ & (2.757) & (2.947) & (2.727) \\
 \midrule
 Municipality FE & Yes & Yes & Yes \\
 Year FE & Yes & Yes & No \\
 State-year FE & No & No & Yes \\
-Observations & 17524 & 17524 & 17511 \\
-Within R\textsuperscript{2} & 0.007 & 0.008 & 0.005 \\
+Observations & 24,358 & 24,358 & 24,358 \\
 \midrule
-\multicolumn{4}{l}{\footnotesize Clustered standard errors by municipality in parentheses.} \\
-\multicolumn{4}{l}{\footnotesize *** p<0.01, ** p<0.05, * p<0.1.} \\
+\multicolumn{4}{l}{ Standard errors in parentheses.} \\
+\multicolumn{4}{l}{ *** p $<$ 0.01, ** p $<$ 0.05, * p $<$ 0.1.} \\
 \bottomrule
 \end{tabular}
+}
